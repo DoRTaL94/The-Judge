@@ -8,10 +8,8 @@ The Judge executes code inside a sandbox to avoid malicious code execution.
 
 ## Download
 
-The most updated version of The Judge can be downloaded [here](https://drive.google.com/open?id=10QIsxmmuRCLxloOVFQzzmKyZ57U-oNMo).  
-As I already mentioned The Judge runs on Apache Tomcat 8 server, so you should download it also.  
-Put the WAR file you downloaded in the above link inside `<Tomcat-path>/webapps/` and then run **startup.bat**  
-inside `<Tomcat-path>/bin/`.  
+The most updated version of The Judge can be downloaded [here](https://drive.google.com/open?id=1GDjWZ-Htvem_ecNWZvgNfed7Z53ZlHjY).  
+Extract the zip file and run `TheJudge-startup.bat`.  
 The Judge should be available on route `/TheJudge`.  
 
 ## API
