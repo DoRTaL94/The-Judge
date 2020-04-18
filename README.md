@@ -6,6 +6,14 @@ The Judge is a Restful API code judge written in Java and runs on Apache Tomcat 
 The Judge is currently supporting Java code and will support more languages in the near future.  
 The Judge executes code inside a sandbox to avoid malicious code execution.  
 
+## Download
+
+The most updated version of The Judge can be downloaded [here](https://drive.google.com/open?id=10QIsxmmuRCLxloOVFQzzmKyZ57U-oNMo).  
+As I already mentioned The Judge runs on Apache Tomcat 8 server, so you should download it also.  
+Put the WAR file you downloaded in the above link inside `<Tomcat-path>/webapps/` and then run **startup.bat**  
+inside `<Tomcat-path>/bin/`.  
+The Judge should be available on route `/TheJudge`.  
+
 ## API
 
 The Judge has a single route for code execution.  
