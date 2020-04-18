@@ -58,7 +58,7 @@ public class CodeService {
 
         if(requestData.getCode() == null || requestData.getLang() == null) {
             throw new RequestBodyFieldsException(requestData);
-        } else if(requestData.getTests() == null) {
+        } else if(requestData.getTests() == null || requestData.getTests().equals("")) {
             requestData.setTests(templateService.getEmptyTestsTemplate(Language.JAVA));
         }
 
