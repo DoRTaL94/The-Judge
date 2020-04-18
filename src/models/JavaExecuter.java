@@ -1,5 +1,7 @@
 package models;
 
+import exceptions.ExecuterException;
+import services.Language;
 import services.TemplateService;
 import utils.FileUtilities;
 
@@ -22,7 +24,7 @@ public class JavaExecuter implements ICodeExecuter {
     TemplateService templateService;
 
     @Override
-    public void init(TemplateService templateService, String filesDest, String solCode, String tests) throws IOException, InterruptedException {
+    public void init(TemplateService templateService, String filesDest, String solCode, String tests) throws IOException, ExecuterException {
         FileUtilities.createFoldersInPath(filesDest);
         this.filesDest = filesDest;
         this.templateService = templateService;
@@ -30,7 +32,7 @@ public class JavaExecuter implements ICodeExecuter {
         String solDest = Paths.get(filesDest, "Solution.java").toString();
         String testsDest = Paths.get(filesDest, "Tests.java").toString();
 
-        FileUtilities.WriteToFile(mainDest, templateService.getMainTemplate("java"));
+        FileUtilities.WriteToFile(mainDest, templateService.getMainTemplate(Language.JAVA));
         FileUtilities.WriteToFile(solDest, solCode);
         FileUtilities.WriteToFile(testsDest, addSecurityManager(addImports(tests)));
         isInit = true;
@@ -40,12 +42,20 @@ public class JavaExecuter implements ICodeExecuter {
         return "import org.junit.Test;import static org.junit.Assert.*;" + tests;
     }
 
-    private String addSecurityManager(String tests) {
+    private String addSecurityManager(String tests) throws ExecuterException {
         String classDec = "public class Tests {";
-        int i = tests.indexOf(classDec) + classDec.length();
-        String before = tests.substring(0, i);
+        int lastAppearance = tests.lastIndexOf(classDec) + classDec.length();
+        int firstAppearance = tests.indexOf(classDec) + classDec.length();
+
+        if(lastAppearance != firstAppearance) {
+            throw new ExecuterException(
+                    "There are two appearances of the following string in your code 'public class Tests'. " +
+                    "Make sure to have only one.");
+        }
+
+        String before = tests.substring(0, firstAppearance);
         String toEnter = "public Tests() {System.setSecurityManager(new SecurityManager());}";
-        String after = tests.substring(i);
+        String after = tests.substring(firstAppearance);
         return String.format("%s%s%s", before, toEnter, after);
     }
 
