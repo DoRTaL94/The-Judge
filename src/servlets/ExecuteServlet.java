@@ -1,6 +1,7 @@
 package servlets;
 
 import com.google.gson.Gson;
+import exceptions.RequestBodyFieldsException;
 import models.Response;
 import services.CodeService;
 import services.ServletsService;
@@ -33,6 +34,8 @@ public class ExecuteServlet extends HttpServlet {
 
             out.print(gson.toJson(res));
             out.flush();
+        } catch(RequestBodyFieldsException e) {
+          out.print(String.format("{\"message\": \"%s\"}", e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();
         }

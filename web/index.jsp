@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>RunCode</title>
+    <title>The Judge</title>
   </head>
   <body>
   </body>

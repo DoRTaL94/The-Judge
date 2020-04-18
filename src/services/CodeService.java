@@ -1,6 +1,7 @@
 package services;
 
 import com.google.gson.Gson;
+import exceptions.RequestBodyFieldsException;
 import models.*;
 import org.apache.commons.io.FileUtils;
 import utils.FileUtilities;
@@ -46,13 +47,21 @@ public class CodeService {
         }
     }
 
-    public ExecuteRequestModel getJSONObject(HttpServletRequest request) throws IOException {
+    public ExecuteRequestModel getJSONObject(HttpServletRequest request) throws IOException, RequestBodyFieldsException {
         String jsonData =
                 new BufferedReader(new InputStreamReader(request.getInputStream()))
                         .lines()
                         .collect(Collectors.joining("\n"));
         Gson gson = new Gson();
-        return gson.fromJson(jsonData, ExecuteRequestModel.class);
+        ExecuteRequestModel requestData = gson.fromJson(jsonData, ExecuteRequestModel.class);
+
+        if(requestData.getCode() == null || requestData.getLang() == null) {
+            throw new RequestBodyFieldsException(requestData);
+        } else if(requestData.getTests() == null) {
+            requestData.setTests(templateService.getEmptyTestsTemplate(Language.JAVA));
+        }
+
+        return requestData;
     }
 
     private int getFileCount() {
@@ -85,10 +94,10 @@ public class CodeService {
 
     public ExecutionCallable compileAndRunCode(HttpServletRequest request) throws Exception {
         ExecutionCallable executionCallable;
-        ExecuteRequestModel requestJson = getJSONObject(request);
-        String lang = requestJson.getLang().toLowerCase().replace(" ", "");
-        String code = requestJson.getCode();
-        String tests = requestJson.getTests();
+        ExecuteRequestModel requestData = getJSONObject(request);
+        String lang = requestData.getLang().toLowerCase().replace(" ", "");
+        String code = requestData.getCode();
+        String tests = requestData.getTests();
 
         updateSolutionPath();
 

@@ -1,7 +1,8 @@
 package services;
 
 public class TemplateService {
-    private final String javaMain = "import org.junit.runner.JUnitCore;\n" +
+    private final String javaMain =
+            "import org.junit.runner.JUnitCore;\n" +
             "import org.junit.runner.Result;\n" +
             "import org.junit.runner.notification.Failure;\n" +
             "import java.util.List;\n" +
@@ -22,13 +23,19 @@ public class TemplateService {
             "        }\n" +
             "    }\n" +
             "}";
+    private final String javaEmptyTests =
+            "public class Tests {\n" +
+            "    @Test\n" +
+            "    public void Test1() {\n" +
+            "        Solution.sayHello();\n" +
+            "    }\n" +
+            "}";
 
-    public String getMainTemplate(String programmingLanguage) {
+    public String getMainTemplate(Language programmingLanguage) {
         String mainTemplate;
-        programmingLanguage = programmingLanguage.toLowerCase();
 
         switch (programmingLanguage) {
-            case "java":
+            case JAVA:
                 mainTemplate = javaMain;
                 break;
             default:
@@ -37,5 +44,20 @@ public class TemplateService {
         }
 
         return mainTemplate;
+    }
+
+    public String getEmptyTestsTemplate(Language programmingLanguage) {
+        String testsTemplate;
+
+        switch (programmingLanguage) {
+            case JAVA:
+                testsTemplate = javaEmptyTests;
+                break;
+            default:
+                testsTemplate = null;
+                break;
+        }
+
+        return testsTemplate;
     }
 }
