@@ -46,19 +46,19 @@ Sending the following request body to The Judge:
   "lang": "Java",
   "code": "public class Solution {
       public static String sayHello() {
-        System.out.println("This string will return in the 'output' field of the response");
-        return "Hey";
+        System.out.println(\"This string will return in the 'output' field of the response\");
+        return \"Hey\";
       }
     }",
   "tests": "public class Tests {
     @Test
     public void Test1() {
-      assertEquals("Hello", Solution.sayHello());
+      assertEquals(\"Hello\", Solution.sayHello());
     }
     
     @Test
     public void Test2() {
-      assertEquals("Sup", Solution.sayHello());
+      assertEquals(\"Sup\", Solution.sayHello());
     }
   }"
 }
