@@ -45,7 +45,7 @@ Sending the following request body to The Judge:
 {
   "lang": "Java",
   "code": "public class Solution {
-      public static void sayHello() {
+      public static String sayHello() {
         System.out.println("This string will return in the 'output' field of the response");
         return "Hey";
       }
