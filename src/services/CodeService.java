@@ -45,6 +45,8 @@ public class CodeService {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        } else {
+            tmpFolder.mkdir();
         }
     }
 
