@@ -15,7 +15,6 @@ import java.nio.file.Paths;
 import java.util.concurrent.*;
 
 public class JavaExecuter implements ICodeExecuter {
-    private static final String TOMCAT_DIR_NAME = "apache-tomcat-8.5.54";
     private static final Object RUN_LOCK = new Object();
     private static final ExecutorService THREAD_POOL = Executors.newCachedThreadPool();
     private final int TIMEOUT_SECONDS = 3;
@@ -65,7 +64,7 @@ public class JavaExecuter implements ICodeExecuter {
         ProgramOutput output = new ProgramOutput();
 
         if(isInit) {
-            Process toClass = Runtime.getRuntime().exec(String.format("javac -cp C:\\%s\\bin\\jars\\*; %s\\*", TOMCAT_DIR_NAME, filesDest));
+            Process toClass = Runtime.getRuntime().exec(String.format("javac -cp ./jars/*; %s/*", filesDest));
             FutureTask<String> readIsTask = new FutureTask<>(new StreamReader(toClass.getInputStream()));
             FutureTask<String> readEsTask = new FutureTask<>(new StreamReader(toClass.getErrorStream()));
             THREAD_POOL.execute(readIsTask);
@@ -88,7 +87,7 @@ public class JavaExecuter implements ICodeExecuter {
         if(isInit && isCompiled) {
             Path filesDestPath =  Paths.get(filesDest);
             String codeFolder = filesDestPath.getFileName().toString();
-            String command = String.format("java -cp C:\\%s\\bin\\jars\\*;./tmp/%s;. Main", TOMCAT_DIR_NAME, codeFolder);
+            String command = String.format("java -cp ./jars/*;./tmp/%s;. Main", codeFolder);
             Process p;
             boolean isTerminatedBeforeTime;
             FutureTask<String> readIsTask;
