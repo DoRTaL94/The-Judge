@@ -1,8 +1,11 @@
-package models;
+package executers;
 
+import configs.langConfig;
 import exceptions.ExecuterException;
+import models.ICodeExecuter;
+import models.ProgramOutput;
+import services.LangConfigService;
 import services.Language;
-import services.TemplateService;
 import utils.FileUtilities;
 
 import java.io.BufferedReader;
@@ -10,61 +13,44 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.*;
 
-public class JavaExecuter implements ICodeExecuter {
+public abstract class CompileAndRunExecutor implements ICodeExecuter {
     private static final Object RUN_LOCK = new Object();
     private static final ExecutorService THREAD_POOL = Executors.newCachedThreadPool();
     private final int TIMEOUT_SECONDS = 3;
     private boolean isInit = false;
     private boolean isCompiled = false;
     private String filesDest = null;
-    TemplateService templateService;
+    private Language lang;
+    LangConfigService langConfigService;
 
     @Override
-    public void init(TemplateService templateService, String filesDest, String solCode, String tests) throws IOException, ExecuterException {
+    public void init(LangConfigService langConfigService, Language lang, String filesDest, String solCode, String tests) throws IOException, ExecuterException {
         FileUtilities.createFoldersInPath(filesDest);
         this.filesDest = filesDest;
-        this.templateService = templateService;
-        String mainDest = Paths.get(filesDest, "Main.java").toString();
-        String solDest = Paths.get(filesDest, "Solution.java").toString();
-        String testsDest = Paths.get(filesDest, "Tests.java").toString();
+        this.langConfigService = langConfigService;
+        this.lang = lang;
+        langConfig langConfig = langConfigService.getLangConfig(lang);
+        String mainDest = Paths.get(filesDest, langConfig.getMainFileName()).toString();
+        String solDest = Paths.get(filesDest, langConfig.getSolutionFileName()).toString();
+        String testsDest = Paths.get(filesDest, langConfig.getTestsFileName()).toString();
 
-        FileUtilities.WriteToFile(mainDest, templateService.getMainTemplate(Language.JAVA));
-        FileUtilities.WriteToFile(solDest, solCode);
-        FileUtilities.WriteToFile(testsDest, addSecurityManager(addImports(tests)));
+        FileUtilities.WriteToFile(mainDest, langConfigService.getLangConfig(lang).getMainTemplate());
+        FileUtilities.WriteToFile(solDest, langConfig.addCodeToSolution(solCode));
+        FileUtilities.WriteToFile(testsDest, addSecurityManager(langConfig.addCodeToTests(tests)));
         isInit = true;
     }
 
-    private String addImports(String tests) {
-        return "import org.junit.Test;import static org.junit.Assert.*;" + tests;
-    }
-
-    private String addSecurityManager(String tests) throws ExecuterException {
-        String classDec = "public class Tests {";
-        int lastAppearance = tests.lastIndexOf(classDec) + classDec.length();
-        int firstAppearance = tests.indexOf(classDec) + classDec.length();
-
-        if(lastAppearance != firstAppearance) {
-            throw new ExecuterException(
-                    "There are two appearances of the following string in your code 'public class Tests'. " +
-                    "Make sure to have only one.");
-        }
-
-        String before = tests.substring(0, firstAppearance);
-        String toEnter = "public Tests() {System.setSecurityManager(new SecurityManager());}";
-        String after = tests.substring(firstAppearance);
-        return String.format("%s%s%s", before, toEnter, after);
-    }
+    protected abstract String addSecurityManager(String tests) throws ExecuterException;
 
     @Override
     public ProgramOutput compile() throws Exception {
         ProgramOutput output = new ProgramOutput();
 
         if(isInit) {
-            Process toClass = Runtime.getRuntime().exec(String.format("javac -cp ./jars/*; %s/*", filesDest));
+            Process toClass = Runtime.getRuntime().exec(String.format(langConfigService.getLangConfig(lang).getCompilationCommand(), filesDest));
             FutureTask<String> readIsTask = new FutureTask<>(new StreamReader(toClass.getInputStream()));
             FutureTask<String> readEsTask = new FutureTask<>(new StreamReader(toClass.getErrorStream()));
             THREAD_POOL.execute(readIsTask);
@@ -85,9 +71,7 @@ public class JavaExecuter implements ICodeExecuter {
         ProgramOutput output = new ProgramOutput();
 
         if(isInit && isCompiled) {
-            Path filesDestPath =  Paths.get(filesDest);
-            String codeFolder = filesDestPath.getFileName().toString();
-            String command = String.format("java -cp ./jars/*;./tmp/%s;. Main", codeFolder);
+            String command = langConfigService.getLangConfig(lang).getExecuteCommand(Paths.get(filesDest));
             Process p;
             boolean isTerminatedBeforeTime;
             FutureTask<String> readIsTask;
@@ -118,7 +102,7 @@ public class JavaExecuter implements ICodeExecuter {
         return output;
     }
 
-    class StreamReader implements Callable<String> {
+    protected class StreamReader implements Callable<String> {
         InputStream is;
 
         StreamReader(InputStream is) {
@@ -129,15 +113,16 @@ public class JavaExecuter implements ICodeExecuter {
         public String call() throws Exception {
             BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder();
+            langConfig langConfig = langConfigService.getLangConfig(lang);
 
             for (String line = reader.readLine(); line != null; line = reader.readLine()) {
-                int i = line.indexOf("Solution.java");
+                int i = line.indexOf(langConfig.getSolutionFileName());
 
                 if(i == -1) {
-                    i = line.indexOf("Main.java");
+                    i = line.indexOf(langConfig.getMainFileName());
 
                     if(i == -1) {
-                        i = line.indexOf("Tests.java");
+                        i = line.indexOf(langConfig.getTestsFileName());
 
                         if(i == -1) {
                             i = 0;

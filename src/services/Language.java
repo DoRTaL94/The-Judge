@@ -1,5 +1,6 @@
 package services;
 
 public enum Language {
-    JAVA
+    JAVA,
+    JAVASCRIPT
 }

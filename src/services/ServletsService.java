@@ -19,14 +19,14 @@ public class ServletsService {
         return (CodeService) i_ServletContext.getAttribute(CODE_SERVICE_ATTRIBUTE_NAME);
     }
 
-    public static TemplateService getTemplateService(ServletContext i_ServletContext) {
+    public static LangConfigService getTemplateService(ServletContext i_ServletContext) {
 
         synchronized (templateServiceLock) {
             if (i_ServletContext.getAttribute(TEMPLATE_SERVICE_ATTRIBUTE_NAME) == null) {
-                i_ServletContext.setAttribute(TEMPLATE_SERVICE_ATTRIBUTE_NAME, new TemplateService());
+                i_ServletContext.setAttribute(TEMPLATE_SERVICE_ATTRIBUTE_NAME, new LangConfigService());
             }
         }
 
-        return (TemplateService) i_ServletContext.getAttribute(TEMPLATE_SERVICE_ATTRIBUTE_NAME);
+        return (LangConfigService) i_ServletContext.getAttribute(TEMPLATE_SERVICE_ATTRIBUTE_NAME);
     }
 }

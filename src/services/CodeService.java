@@ -1,8 +1,9 @@
 package services;
 
 import com.google.gson.Gson;
-import exceptions.ExecuterException;
+import configs.langConfig;
 import exceptions.RequestBodyFieldsException;
+import executers.JavaExecutor;
 import models.*;
 import org.apache.commons.io.FileUtils;
 import utils.FileUtilities;
@@ -15,38 +16,39 @@ import java.util.stream.Collectors;
 
 public class CodeService {
     private final long MAX_BYTES_IN_TMP = 1000000000;
-    private final TemplateService templateService;
+    private final LangConfigService langConfigService;
     private final String programExecutedSuccessfully = "Program executed successfully.%sDuration: %.2f s.";
     private final String runtimeError = "Oops... Runtime error.%sPlease check the raw output.";
     private final String compileError = "There are compilation errors.%sPlease check if you changed our solution template structure.%sIf not check the raw output.";
     private final String timeoutError = "Your solution takes a long time to execute.%sMaybe there is an infinite loop in your code.";
     private final String codeFolderName = "code%d";
     private final String rootDir;
-    private final String tmpFolderPath;
+    private String tmpFolderPath;
     private final float nanosInOneSec = 1000000000;
     private final Object fileCounterLock = new Object();
     private int fileCounter = 0;
     private String solutionPath;
 
-    public CodeService(TemplateService templateService) {
-        this.templateService = templateService;
+    public CodeService(LangConfigService langConfigService) {
+        this.langConfigService = langConfigService;
         rootDir = System.getProperty("user.dir");
-        tmpFolderPath = Paths.get(rootDir, "tmp").toString();
         cleanTmp();
     }
 
     private void cleanTmp() {
-        File tmpFolder = new File(tmpFolderPath);
-        boolean isTmpExists = tmpFolder.exists();
+        if(tmpFolderPath != null) {
+            File tmpFolder = new File(tmpFolderPath);
+            boolean isTmpExists = tmpFolder.exists();
 
-        if(isTmpExists) {
-            try {
-                FileUtils.cleanDirectory(tmpFolder);
-            } catch (IOException e) {
-                e.printStackTrace();
+            if (isTmpExists) {
+                try {
+                    FileUtils.cleanDirectory(tmpFolder);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                tmpFolder.mkdir();
             }
-        } else {
-            tmpFolder.mkdir();
         }
     }
 
@@ -58,10 +60,8 @@ public class CodeService {
         Gson gson = new Gson();
         ExecuteRequestModel requestData = gson.fromJson(jsonData, ExecuteRequestModel.class);
 
-        if(requestData.getCode() == null || requestData.getLang() == null) {
+        if(requestData.getCode() == null || requestData.getLang() == null || requestData.getTests() == null || requestData.getTests().equals("")) {
             throw new RequestBodyFieldsException(requestData);
-        } else if(requestData.getTests() == null || requestData.getTests().equals("")) {
-            requestData.setTests(templateService.getEmptyTestsTemplate(Language.JAVA));
         }
 
         return requestData;
@@ -96,24 +96,15 @@ public class CodeService {
     }
 
     public ExecutionCallable compileAndRunCode(HttpServletRequest request) throws Exception {
-        ExecutionCallable executionCallable;
         ExecuteRequestModel requestData = getJSONObject(request);
         String lang = requestData.getLang().toLowerCase().replace(" ", "");
         String code = requestData.getCode();
         String tests = requestData.getTests();
-
+        langConfig langConfig = langConfigService.getLangConfig(Language.valueOf(lang.toUpperCase()));
+        tmpFolderPath = Paths.get(rootDir, langConfig.getRootFolderName() + "/tmp").toString();
         updateSolutionPath();
 
-        switch (lang) {
-            case "java":
-                executionCallable = new ExecutionCallable(new JavaExecuter(), code, tests);
-                break;
-            default:
-                executionCallable = null;
-                break;
-        }
-
-        return executionCallable;
+        return new ExecutionCallable(langConfig.getExecutor(), Language.valueOf(lang.toUpperCase()), code, tests);
     }
 
     private void setProperExecuteMessagesForResponse(Response response, ProgramOutput executedProgOutput) {
@@ -142,26 +133,28 @@ public class CodeService {
 
     public class ExecutionCallable implements Callable<Response> {
 
-        private ICodeExecuter executer;
+        private ICodeExecuter executor;
         private String code;
         private String tests;
+        private Language lang;
 
-        public ExecutionCallable(ICodeExecuter executer, String code, String tests) {
-            this.executer = executer;
+        public ExecutionCallable(ICodeExecuter executor, Language lang, String code, String tests) {
+            this.executor = executor;
             this.code = code;
             this.tests = tests;
+            this.lang = lang;
         }
 
         @Override
         public Response call() throws Exception {
             Response response = new Response();
-            executer.init(templateService, solutionPath, code, tests);
-            ProgramOutput compileOutput = executer.compile();
+            executor.init(langConfigService, lang, solutionPath, code, tests);
+            ProgramOutput compileOutput = executor.compile();
             String compileErrors = compileOutput.getErrors();
             response.setErrors(compileErrors);
 
             if(compileErrors.equals("")) {
-                ProgramOutput runOutput = executer.run();
+                ProgramOutput runOutput = executor.run();
                 setProperExecuteMessagesForResponse(response, runOutput);
             } else {
                 response.setMessage(String.format(compileError, System.lineSeparator(), System.lineSeparator()));
